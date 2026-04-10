@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCTI · OC类型测试</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #fafafa; color: #222; line-height: 1.7;
+  padding: 40px 20px 80px;
+}
+.container, .result { max-width: 680px; margin: 0 auto; }
+.hidden { display: none; }
+.result { display: none; }
+.result.active { display: block; }
+header { text-align: center; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid #ddd; }
+h1 { font-size: 26px; font-weight: 600; margin-bottom: 8px; }
+.subtitle { font-size: 13px; color: #888; }
+.intro {
+  background: #f0f0f0; padding: 14px 18px; margin-bottom: 36px;
+  font-size: 14px; color: #555; border-left: 3px solid #999;
+}
+.question { margin-bottom: 36px; }
+.q-header { font-size: 13px; color: #888; margin-bottom: 6px; }
+.q-text { font-size: 16px; margin-bottom: 14px; font-weight: 500; }
+.long-text {
+  background: #f5f5f5; padding: 14px 18px; font-size: 14px;
+  color: #444; margin-bottom: 14px; line-height: 1.9;
+}
+.options { display: flex; flex-direction: column; gap: 8px; }
+.option {
+  padding: 10px 14px; background: #fff; border: 1px solid #ddd;
+  cursor: pointer; font-size: 14px; display: flex; gap: 10px;
+  transition: all 0.15s;
+}
+.option:hover { background: #f5f5f5; border-color: #999; }
+.option.selected { background: #222; color: #fff; border-color: #222; }
+.opt-letter { font-weight: 600; min-width: 16px; }
+footer { margin-top: 50px; text-align: center; }
+button {
+  padding: 12px 40px; font-size: 15px; background: #222;
+  color: #fff; border: none; cursor: pointer; font-family: inherit;
+}
+button:hover { background: #000; }
+.footnote { margin-top: 14px; font-size: 12px; color: #999; }
+.result h2 { font-size: 14px; color: #888; font-weight: 400; margin-bottom: 8px; }
+.result-type {
+  font-size: 32px; font-weight: 700; margin-bottom: 24px;
+  padding-bottom: 20px; border-bottom: 1px solid #ddd;
+}
+.result-desc { font-size: 15px; line-height: 1.9; margin-bottom: 30px; color: #333; white-space: pre-line;}
+.dimensions { margin-bottom: 30px; }
+.dim-item {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px; font-size: 13px;
+}
+.dim-label { min-width: 78px; color: #666; }
+.dim-bar { flex: 1; height: 6px; background: #eee; position: relative; }
+.dim-fill { height: 100%; background: #222; width: 0; transition: width 0.8s ease; }
+.dim-score { min-width: 36px; text-align: right; color: #888; font-size: 12px; }
+.result-note {
+  background: #f5f5f5; padding: 14px 18px; font-size: 13px;
+  color: #666; margin-bottom: 24px; border-left: 3px solid #999;
+  font-style: italic;
+}
+.back-btn { background: #fff; color: #222; border: 1px solid #222; }
+.back-btn:hover { background: #222; color: #fff; }
+.share-btn {
+  background: #fff; color: #222; border: 1px solid #222;
+  margin-left: 10px;
+}
+.share-btn:hover { background: #222; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="container" id="quiz">
+  <header>
+    <h1>OCTI · OC类型测试</h1>
+    <div class="subtitle">共 28 题 · 测测你是哪种造物主</div>
+  </header>
+  <div class="intro">答案无对错。测试你的OC养育风格和创作特质。</div>
+  <form id="quiz-form"></form>
+  <footer>
+    <button type="button" id="submit-btn">提 交</button>
+    <div class="footnote">※ 结果仅供娱乐 ※</div>
+    <div class="footnote">@OCTI Lab</div>
+  </footer>
+</div>
+
+<div class="result" id="result">
+  <header>
+    <h2>你的造物主类型是</h2>
+    <div class="result-type" id="result-type">—</div>
+  </header>
+  <div class="result-desc" id="result-desc"></div>
+  <div class="result-note" id="result-note"></div>
+  <div class="dimensions" id="dimensions"></div>
+  <footer>
+    <button type="button" class="back-btn" id="back-btn">重 新 作 答</button>
+    <button type="button" class="share-btn" id="share-btn">分 享 结 果</button>
+    <div class="footnote">@OCTI Lab</div>
+  </footer>
+</div>
+
+<script>
+// 题目数据 - 评估7个维度
+const questions = [
+  // 执行力维度
+  {n:1,dim:'execution',text:'你构思一个新OC的设定时，通常：',opts:[
+    {k:'A',t:'先写个5000字世界观，然后放文件夹里吃灰',s:0},
+    {k:'B',t:'立马找画师约稿，先让孩子有个脸',s:1},
+    {k:'C',t:'脑子里过一遍，觉得挺不错，然后就没有然后了',s:0},
+    {k:'D',t:'当天就开始画/写，三天内出成品',s:2}
+  ]},
+  // 全能维度 - 技能广度
+  {n:2,dim:'versatility',text:'关于创作技能，你的现状是：',opts:[
+    {k:'A',t:'会画画，也会写文，偶尔还搞搞建模',s:2},
+    {k:'B',t:'专精一项，其他都交给别人',s:1},
+    {k:'C',t:'什么都会一点，什么都不精',s:1},
+    {k:'D',t:'我负责给钱，剩下的交给专业人士',s:0}
+  ]},
+  // 刀子维度
+  {n:3,dim:'angst',text:'关于OC的命运，你的态度是：',opts:[
+    {k:'A',t:'平平淡淡才是真，孩子开心就好',s:0},
+    {k:'B',t:'有点小虐，但最后是HE',s:1},
+    {k:'C',t:'不刀不写，be美学懂不懂',s:2},
+    {k:'D',t:'写完死，死完写，生死轮回是常态',s:2}
+  ]},
+  // 变态维度
+  {n:4,dim:'weird',text:'你的OC涉及以下哪些元素？（可多选 mentality）',opts:[
+    {k:'A',t:'常规萌系/美型设定',s:0},
+    {k:'B',t:'克苏鲁/异形/非人形',s:2},
+    {k:'C',t:'骨科/强迫/黑深残',s:2},
+    {k:'D',t:'人外/福瑞/触手系',s:2},
+    {k:'E',t:'以上全部，而且混着来',s:3}
+  ]},
+  // 金钱维度
+  {n:5,dim:'money',text:'过去一年你在OC上的花费：',opts:[
+    {k:'A',t:'0-500，主要是纸张和电费',s:0},
+    {k:'B',t:'500-2000，偶尔约个稿',s:1},
+    {k:'C',t:'2000-10000，养OC是要花钱的',s:2},
+    {k:'D',t:'10000+，我不差钱，孩子必须有排面',s:3}
+  ]},
+  // 社交维度
+  {n:6,dim:'social',text:'你的OC展示主要在哪里？',opts:[
+    {k:'A',t:'只存在我脑子里，这是我的秘密花园',s:0},
+    {k:'B',t:'发在社交平台，但不太互动',s:1},
+    {k:'C',t:'混圈，搞联动，世界观融合',s:2},
+    {k:'D',t:'卖设/出设，OC是理财产品',s:1}
+  ]},
+  // 产出维度
+  {n:7,dim:'productivity',text:'你平均多久产出一次OC内容？',opts:[
+    {k:'A',t:'日更，我是生产队的驴',s:3},
+    {k:'B',t:'周更，稳定产出',s:2},
+    {k:'C',t:'月更，灵感来了就画',s:1},
+    {k:'D',t:'年更，我是鸽子精',s:0}
+  ]},
+  // 完美主义维度
+  {n:8,dim:'perfection',text:'你对OC设定的修改频率：',opts:[
+    {k:'A',t:'基本不动，出道即定型',s:1},
+    {k:'B',t:'偶尔微调，小修小补',s:1},
+    {k:'C',t:'经常大改，设定推翻重来',s:0},
+    {k:'D',t:'每天一个新版本，连名字都记不住',s:0}
+  ]},
+  // 长文本情景题1 - 刀子检测
+  {n:9,dim:'angst',longText:true,
+    text:'你刚画完一张特别满意的OC图，朋友看了说"好看，但感觉ta下一秒就要死了"。你：',
+    opts:[
+      {k:'A',t:'什么意思？我的孩子活得好好的',s:0},
+      {k:'B',t:'确实有后续剧情要发刀，被你发现了',s:2},
+      {k:'C',t:'连夜写了3000字遗书和死亡场景',s:2},
+      {k:'D',t:'这不是默认设定吗，OC不刀还有什么意思',s:2}
+  ]},
+  // 长文本情景题2 - 土豪检测
+  {n:10,dim:'money',longText:true,
+    text:'你想给OC做一套新衣服，你会：',
+    opts:[
+      {k:'A',t:'自己画，反正有手',s:0},
+      {k:'B',t:'去找白菜画师薅个便宜稿',s:0},
+      {k:'C',t:'约喜欢的画师，价格不是问题',s:2},
+      {k:'D',t:'直接找3D建模师做可动模型',s:3}
+  ]},
+  // 长文本情景题3 - 全能检测
+  {n:11,dim:'versatility',longText:true,
+    text:'你打算给OC做个完整的展示，目前进度是：',
+    opts:[
+      {k:'A',t:'写了世界观，画了立绘，建了模型，做了手书，剪了视频，开了个站',s:3},
+      {k:'B',t:'画了立绘，其他还在计划中',s:1},
+      {k:'C',t:'写了文，但不会画画，正在找人合作',s:1},
+      {k:'D',t:'脑子里有完整方案，等有空就做',s:0}
+  ]},
+  // 社交深度
+  {n:12,dim:'social',text:'关于和其他创作者互动：',opts:[
+    {k:'A',t:'从不互动，单机玩家',s:0},
+    {k:'B',t:'偶尔评论点赞',s:1},
+    {k:'C',t:'经常交流，互关好友',s:2},
+    {k:'D',t:'搞联动，世界观融合，一起搞企划',s:2}
+  ]},
+  // 变态深度
+  {n:13,dim:'weird',text:'你对以下内容的接受度：触手、寄生、人外、改造、实验体',opts:[
+    {k:'A',t:'不了不了，接受不能',s:0},
+    {k:'B',t:'看过，但不感兴趣',s:0},
+    {k:'C',t:'还行，有点意思',s:1},
+    {k:'D',t:'太棒了，我OC就是这样的',s:2}
+  ]},
+  // 执行力检测
+  {n:14,dim:'execution',text:'你立过的flag完成情况：',opts:[
+    {k:'A',t:'说到做到，flag全兑现',s:2},
+    {k:'B',t:'完成大半，部分延期',s:1},
+    {k:'C',t:'完成了开头，然后新建文件夹',s:0},
+    {k:'D',t:'flag是什么？我只立不倒',s:0}
+  ]},
+  // 刀子日常
+  {n:15,dim:'angst',text:'你的OC现在状态是：',opts:[
+    {k:'A',t:'活得好好的，全家幸福',s:0},
+    {k:'B',t:'有点小惨但还活着',s:1},
+    {k:'C',t:'已经死了，在我的多个if线里反复去世',s:2},
+    {k:'D',t:'死是开始，剧情从死亡后展开',s:2}
+  ]},
+  // 金钱观
+  {n:16,dim:'money',text:'关于约稿，你的理念是：',opts:[
+    {k:'A',t:'能自己画就自己画',s:0},
+    {k:'B',t:'找性价比高的白菜稿',s:1},
+    {k:'C',t:'喜欢的大大再贵也要约',s:2},
+    {k:'D',t:'直接买断老师的档期',s:3}
+  ]},
+  // 完美主义细节
+  {n:17,dim:'perfection',text:'你对OC设定的细节程度：',opts:[
+    {k:'A',t:'有基础设定就行，剩下的随缘',s:0},
+    {k:'B',t:'有详细设定，但不会死抠',s:1},
+    {k:'C',t:'精确到每个配饰的含义和来历',s:2},
+    {k:'D',t:'世界观、编年史、人物关系图、设定集一本全',s:2}
+  ]},
+  // 社交焦虑
+  {n:18,dim:'social',text:'当你发现有人跟你OC撞设定：',opts:[
+    {k:'A',t:'无所谓，设定撞了很正常',s:1},
+    {k:'B',t:'心里有点不舒服，但不会说',s:1},
+    {k:'C',t:'去对方评论区提醒一下',s:0},
+    {k:'D',t:'连夜修改自己的设定避免雷同',s:0}
+  ]},
+  // 变态xp
+  {n:19,dim:'weird',text:'你的OC有没有以下情节：精神控制、身体改造、非自愿转换',opts:[
+    {k:'A',t:'完全没有，纯爱战神',s:0},
+    {k:'B',t:'有点暗示，但没明写',s:1},
+    {k:'C',t:'有，而且详细描写',s:2},
+    {k:'D',t:'这是基础设定，没有这些OC不存在',s:2}
+  ]},
+  // 产出质量vs数量
+  {n:20,dim:'productivity',text:'你更在意：',opts:[
+    {k:'A',t:'质量，一张图磨一个月',s:2},
+    {k:'B',t:'数量，先画再说',s:2},
+    {k:'C',t:'随缘，看心情',s:1},
+    {k:'D',t:'有就行，证明我还活着',s:0}
+  ]},
+  // 长文本 - 全能
+  {n:21,dim:'versatility',longText:true,
+    text:'有人问你"你会什么"，你的回答是：',
+    opts:[
+      {k:'A',t:'我会画画、写作、建模、剪辑、排版、做手书，还有统筹世界观',s:3},
+      {k:'B',t:'我会画画，写文还在学',s:1},
+      {k:'C',t:'我会写文，画画不行',s:1},
+      {k:'D',t:'我会想，想很多',s:0}
+  ]},
+  // 长文本 - 刀子
+  {n:22,dim:'angst',longText:true,
+    text:'朋友看了你的OC故事后哭了，你说：',
+    opts:[
+      {k:'A',t:'对不起对不起我改结局',s:0},
+      {k:'B',t:'感动吧，这就是我想表达的情感',s:1},
+      {k:'C',t:'这才哪到哪，后面还有更刀的',s:2},
+      {k:'D',t:'哭什么，死的是我OC又不是你',s:2}
+  ]},
+  // 长文本 - 金钱
+  {n:23,dim:'money',longText:true,
+    text:'看到一个超棒的画师开稿，价格是四位数，你：',
+    opts:[
+      {k:'A',t:'看看就好，等我有钱了',s:0},
+      {k:'B',t:'攒钱，下个月一定',s:1},
+      {k:'C',t:'犹豫一下，然后约了',s:2},
+      {k:'D',t:'秒排，顺便把下下次的档期也预订了',s:3}
+  ]},
+  // 长文本 - 执行力
+  {n:24,dim:'execution',longText:true,
+    text:'你脑子里冒出一个超棒的OC设定，接下来：',
+    opts:[
+      {k:'A',t:'立刻打开软件开始创作',s:2},
+      {k:'B',t:'先记录下来，等有时间再做',s:1},
+      {k:'C',t:'在脑子里完善一下，明天再说',s:0},
+      {k:'D',t:'先睡一觉，明天可能就忘了',s:0}
+  ]},
+  // 单机vs社交
+  {n:25,dim:'social',text:'你对"圈子"的态度：',opts:[
+    {k:'A',t:'不需要圈子，我自己玩挺好',s:0},
+    {k:'B',t:'有圈子更好，没有也行',s:1},
+    {k:'C',t:'需要同好交流，单机没意思',s:2},
+    {k:'D',t:'圈子就是我的命，没有圈子就没有OC',s:2}
+  ]},
+  // 完美主义压力
+  {n:26,dim:'perfection',text:'你的OC设定集厚度：',opts:[
+    {k:'A',t:'没有设定集，都在脑子里',s:0},
+    {k:'B',t:'几页文档，基础信息',s:0},
+    {k:'C',t:'几十页，详细设定',s:1},
+    {k:'D',t:'几百页，堪比轻小说',s:2}
+  ]},
+  // 产出持续性
+  {n:27,dim:'productivity',text:'你养OC多久了？',opts:[
+    {k:'A',t:'刚入坑，新鲜劲还没过',s:1},
+    {k:'B',t:'几个月，还在热恋期',s:1},
+    {k:'C',t:'一两年，是长期项目',s:2},
+    {k:'D',t:'三年以上，OC是我生命的一部分',s:2}
+  ]},
+  // 隐藏题 - 变态检测
+  {n:28,dim:'weird',text:'如果你可以给OC添加一个特殊属性，你会选：',opts:[
+    {k:'A',t:'超级幸运，心想事成',s:0},
+    {k:'B',t:'长生不老，永葆青春',s:0},
+    {k:'C',t:'不死之身，死了也能复活',s:1},
+    {k:'D',t:'肉体改造，可以变成任何形态',s:2}
+  ]}
+];
+
+// 维度定义
+const dimensions = {
+  execution:   {label:'执行力',    max:8},
+  versatility: {label:'全能程度',  max:12},
+  angst:       {label:'发刀指数',  max:12},
+  weird:       {label:'变态程度',  max:14},
+  money:       {label:'氪金力度',  max:12},
+  social:      {label:'社交强度',  max:10},
+  productivity:{label:'产出频率',  max:8},
+  perfection:  {label:'完美主义',  max:6}
+};
+
+// 计算结果类型
+function calcType(s, answers) {
+  // 计算各维度百分比
+  const pct = {};
+  Object.keys(dimensions).forEach(k => {
+    pct[k] = (s[k] / dimensions[k].max);
+  });
+  
+  // 判断是否满足各类型条件
+  const high = k => pct[k] >= 0.7;
+  const mid = k => pct[k] >= 0.4 && pct[k] < 0.7;
+  const low = k => pct[k] < 0.4;
+  
+  // 计数各类型倾向
+  let scores = {
+    IMNB: 0,  // 全能
+    DEAD: 0,  // 死者
+    SHIT: 0,  // 废物
+    IMBT: 0,  // 变态
+    CNY:  0,  // 土豪
+    NM:   0,  // 牛马
+    SUN:  0   // 太阳
+  };
+  
+  // IMNB: 全能型 - 多技能且高产出
+  if (high('versatility') && high('execution')) scores.IMNB += 3;
+  if (high('versatility')) scores.IMNB += 2;
+  if (high('productivity') && high('perfection')) scores.IMNB += 2;
+  
+  // DEAD: 死者 - 高刀子指数
+  if (high('angst')) scores.DEAD += 3;
+  if (mid('angst')) scores.DEAD += 1;
+  
+  // SHIT: 废物 - 低执行力+低产出
+  if (low('execution') && low('productivity')) scores.SHIT += 3;
+  if (low('execution')) scores.SHIT += 2;
+  
+  // IMBT: 变态 - 高变态指数
+  if (high('weird')) scores.IMBT += 3;
+  if (mid('weird')) scores.IMBT += 1;
+  
+  // CNY: 土豪 - 高金钱+可能低执行力(外包)
+  if (high('money')) scores.CNY += 3;
+  if (mid('money') && low('execution')) scores.CNY += 2;
+  
+  // NM: 牛马 - 高执行力但可能低全能+中等产出
+  if (high('execution') && low('versatility')) scores.NM += 2;
+  if (high('productivity') && !high('versatility')) scores.NM += 2;
+  
+  // SUN: 太阳 - 低社交+高持续性
+  if (low('social') && high('productivity')) scores.SUN += 3;
+  if (low('social') && mid('productivity')) scores.SUN += 2;
+  if (pct.social < 0.2 && pct.productivity > 0.5) scores.SUN += 2;
+  
+  // 找到最高分
+  let maxScore = 0;
+  let resultType = 'NM';
+  
+  Object.entries(scores).forEach(([type, score]) => {
+    if (score > maxScore) {
+      maxScore = score;
+      resultType = type;
+    }
+  });
+  
+  // 如果没有明显倾向，默认NM
+  if (maxScore === 0) resultType = 'NM';
+  
+  // 返回结果详情
+  const results = {
+    IMNB: {
+      name: 'IMNB · 八边形战士',
+      desc: '你是什么都会的造物主之神。\n\n绘画、写作、建模、动态、美工、媒体、申报名气——你样样精通。你的孩子有完整的设定集、精美的立绘、流畅的模型、甚至还有手书和动态壁纸。你是别人口中的"大佬"，是新人仰望的存在。\n\n你不仅产出稳定，而且质量极高。你的OC有完整的世界观、详细的人物小传、精确到每个配饰的设计稿。你会自己写文、自己画图、自己做周边，甚至还能教别人怎么养OC。\n\n唯一的缺点可能是：你太全能了，导致别人以为你开了挂。',
+      note: '代表瞬间：别人问你"你会什么"，你回答"都会一点"，然后展示了绘画、写作、建模、剪辑、排版的完整作品集。'
+    },
+    DEAD: {
+      name: 'DEAD · 死者',
+      desc: '你是行走的殡仪馆馆长。\n\n别人养OC是为了让孩子幸福，你养OC是为了让孩子死得其所。你的OC没有一个是善终的，要么战死了，要么病死了，要么为了救别人牺牲了自己。你写的每一个故事都是催泪弹，每一张图都透着悲剧美学。\n\n你深谙"悲剧才能永恒"的道理，所以你的OC往往在最美好的时刻死去，留下无尽的遗憾和思念。你的粉丝（如果有的话）看你的作品都得准备好纸巾。\n\n但不得不说，你写的死亡场景真的很动人。那种凄美、那种悲壮、那种让人心碎的细腻——你是真的会发刀子。',
+      note: '代表瞬间：朋友问"你OC现在怎么样"，你平静地回答"死了"，然后打开了名为"遗照"的文件夹。'
+    },
+    SHIT: {
+      name: 'SHIT · 废物',
+      desc: '你是专业的想法收藏家。\n\n你的脑子里有无数个绝妙的OC设定，每一个都是神作级别的创意。你的孩子有复杂的身世、独特的性格、精彩的故事线——但这一切都只存在于你的脑海中。\n\n你经常幻想"等我有了时间一定要画出来"、"这个设定写出来肯定火"，但时间永远不够用，设定永远只是设定。你的文件夹里躺着几十个"新建文件夹"，每一个都标注着"神作待产"。\n\n也许你的孩子连一张完整的立绘都没有，但这不妨碍你在脑子里给他们过完了精彩的一生。毕竟，想象是自由的，而动手是需要精力的。',
+      note: '代表瞬间：别人问"你OC长什么样"，你滔滔不绝讲了半小时设定，最后对方问"有图吗"，你说"还在构思中"。'
+    },
+    IMBT: {
+      name: 'IMBT · 变态',
+      desc: '你的XP系统需要单独分区。\n\n在别人还在画萌系日常的时候，你已经在搞人外、触手、克苏鲁、肉体改造、精神控制、强制转换了。你的OC设定总是让人瞳孔地震："这也能行？"\n\n你不满足于常规的萌点，你追求更刺激、更猎奇、更有冲击力的设定。你的OC可能是半机械改造人，可能是寄生生物宿主，可能是多重人格的精神病患者——而且你还把这些设定写得特别详细，特别带感。\n\n虽然有人觉得你重口，但你不在乎。毕竟艺术是多元的，XP也是自由的。你的作品总能让同好们眼前一亮（或者眼前一黑）。',
+      note: '代表瞬间：你兴奋地展示新OC设定，朋友看完后沉默了三秒，说"这真的不会被封号吗"。'
+    },
+    CNY: {
+      name: 'CNY · 土地主',
+      desc: '你是用钞能力养OC的人。\n\n你不会画画？没关系，找画师。你不会写文？没关系，找写手。你不会建模？没关系，找建模师。在你眼里，没有什么是钱解决不了的，如果有，那就是钱不够。\n\n你的孩子拥有最豪华的配置：知名画师的立绘、专业写手的背景故事、精致的三维模型、甚至还有定制的周边和COS服。你不需要自己动手，你只需要动钱包。\n\n别人在熬夜肝图的时候，你在挑选要约的画师。别人在为画技焦虑的时候，你在比较哪个建模师风格更适合。这就是有钱人的快乐——你可以用钱买到别人花几年才能学会的技能。',
+      note: '代表瞬间：群里讨论"怎么提升画技"，你默默发了一张四位数约稿的付款截图。'
+    },
+    NM: {
+      name: 'NM · 牛马',
+      desc: '你是勤劳但迷茫的造物主。\n\n你很努力，真的很努力。你每天都在想OC、画OC、写OC，你的产出频率不低，但总觉得哪里不对劲。你的画技在进步但永远不够精，你的文在写但总是差点火候，你的设定在完善但总觉得还不够完整。\n\n你付出了很多时间和精力，但成果总是不如预期。你看着大佬的作品羡慕不已，看着新人的进步感到焦虑。你在想"我是不是不适合搞OC"，但第二天还是会打开绘画软件。\n\n但别灰心，量变终会产生质变。你现在的积累都在为未来的爆发做准备。坚持下去，总有一天你会从牛马进化成黑马。',
+      note: '代表瞬间：你发了一张新图，配文"摸鱼"，实际上画了十个小时，收获了三个点赞。'
+    },
+    SUN: {
+      name: 'SUN · 太阳',
+      desc: '你是单机快乐型造物主。\n\n你不混圈，不攀比，不参与任何 drama。你养OC纯粹是为了自己开心，你的孩子就是你最宝贝的存在。你不需要别人的认可，也不需要数据和流量，只要看着OC你就满足了。\n\n你可能产出不高，但每一次创作都是真心的。你不会为了迎合市场而改变设定，不会为了涨粉而蹭热度。你的OC世界是你专属的避风港，在那里你可以完全做自己。\n\n有人说你"不够上进"，但你知道快乐才是最重要的。OC本来就是为了让自己开心而存在的，不是吗？继续保持这份纯粹的快乐吧，这是很多人羡慕不来的。',
+      note: '代表瞬间：别人问"你OC有多少粉丝"，你愣了一下说"什么粉丝？OC不是只给自己看的吗"。'
+    }
+  };
+  
+  return results[resultType];
+}
+
+// 渲染题目
+const form = document.getElementById('quiz-form');
+const answers = {};
+const multiAnswers = {};
+
+questions.forEach(q => {
+  const div = document.createElement('div');
+  div.className = 'question';
+  const meta = q.longText ? '情景题' : '维度已隐藏';
+  let html = `<div class="q-header">第 ${q.n} 题 · ${meta}</div>`;
+  html += q.longText ? `<div class="long-text">${q.text}</div>` : `<div class="q-text">${q.text}</div>`;
+  html += `<div class="options">`;
+  q.opts.forEach(o => {
+    html += `<div class="option" data-q="${q.n}" data-opt="${o.k}">
+      <span class="opt-letter">${o.k}</span><span>${o.t}</span>
+    </div>`;
+  });
+  html += `</div>`;
+  div.innerHTML = html;
+  form.appendChild(div);
+});
+
+// 选项点击事件
+document.querySelectorAll('.option').forEach(el => {
+  el.addEventListener('click', () => {
+    const q = el.dataset.q, o = el.dataset.opt;
+    const question = questions.find(qs => qs.n == q);
+    
+    // 检查是否为变态题的多选逻辑
+    if (q == '4') {
+      if (!multiAnswers[q]) multiAnswers[q] = new Set();
+      if (multiAnswers[q].has(o)) {
+        multiAnswers[q].delete(o);
+        el.classList.remove('selected');
+      } else {
+        multiAnswers[q].add(o);
+        el.classList.add('selected');
+      }
+      // 保存最高分值
+      let maxScore = 0;
+      multiAnswers[q].forEach(opt => {
+        const optData = question.opts.find(od => od.k === opt);
+        if (optData && optData.s > maxScore) maxScore = optData.s;
+      });
+      answers[q] = { score: maxScore };
+    } else {
+      document.querySelectorAll(`.option[data-q="${q}"]`).forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+      answers[q] = o;
+    }
+  });
+});
+
+// 提交按钮
+document.getElementById('submit-btn').addEventListener('click', () => {
+  const singleQs = questions.filter(q => q.n != 4).length;
+  const answered = Object.keys(answers).filter(k => k != '4').length;
+  if (answered < singleQs) {
+    if (!confirm(`还有 ${singleQs - answered} 题没答，确定提交？`)) return;
+  }
+
+  // 计算分数
+  const scores = {execution:0,versatility:0,angst:0,weird:0,money:0,social:0,productivity:0,perfection:0};
+  questions.forEach(q => {
+    if (!q.dim) return;
+    const picked = answers[q.n];
+    if (!picked) return;
+    
+    let opt;
+    if (q.n == 4 && typeof picked === 'object') {
+      // 变态题特殊处理
+      scores[q.dim] += picked.score || 0;
+      return;
+    }
+    
+    opt = q.opts.find(o => o.k === picked);
+    if (opt && typeof opt.s === 'number') scores[q.dim] += opt.s;
+  });
+
+  const result = calcType(scores, answers);
+
+  // 显示结果
+  document.getElementById('result-type').textContent = result.name;
+  document.getElementById('result-desc').textContent = result.desc;
+  document.getElementById('result-note').textContent = result.note;
+
+  // 显示维度
+  const dimBox = document.getElementById('dimensions');
+  dimBox.innerHTML = '';
+  Object.entries(dimensions).forEach(([key, def]) => {
+    const pct = Math.round((scores[key] / def.max) * 100);
+    dimBox.innerHTML += `
+      <div class="dim-item">
+        <div class="dim-label">${def.label}</div>
+        <div class="dim-bar"><div class="dim-fill" data-pct="${pct}"></div></div>
+        <div class="dim-score">${pct}%</div>
+      </div>`;
+  });
+
+  document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('result').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  setTimeout(() => {
+    document.querySelectorAll('.dim-fill').forEach(el => {
+      el.style.width = el.dataset.pct + '%';
+    });
+  }, 100);
+});
+
+// 返回按钮
+document.getElementById('back-btn').addEventListener('click', () => {
+  document.getElementById('result').classList.remove('active');
+  document.getElementById('quiz').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+// 分享按钮
+document.getElementById('share-btn').addEventListener('click', () => {
+  const resultType = document.getElementById('result-type').textContent;
+  const text = `我在OCTI测试中获得了【${resultType}】的结果！快来测测你是哪种造物主吧~`;
+  
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('结果已复制到剪贴板！');
+    });
+  } else {
+    alert(text);
+  }
+});
+</script>
+</body>
+</html>
